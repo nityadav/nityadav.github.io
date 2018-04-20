@@ -1,0 +1,46 @@
+---
+layout: post
+title:  "Training RNNG's generative parser"
+date:   2018-04-18 22:10:00 -0800
+background: '/images/lighthouse.jpg'
+---
+
+In the Recurrent Neural Network Grammars [paper](https://arxiv.org/abs/1602.07776), two parsers are discussed:
+Discriminative and Generative. Both parsers take a sequence of terminals (or tokens) $$ \mathbf{x} $$
+and produce a parse tree $$ \mathbf{y} $$. The parse tree, which is generated in a top-down fashion, is defined as
+a sequence of actions. Each action is one of the following:
+* NT(X): Parser introduces a non-terminal onto the stack.
+* SHIFT: Parser removes a terminal from the buffer and places it on the top of the stack.
+* REDUCE: Parser decides that the top-most subtree on the stack is complete and moves on to complete the next open
+non-terminal on the stack.
+
+Taking the example from the paper, the parse tree: `(S (NP The hungry cat) (VP meows))`
+is equivalent to the sequence of actions $$ \mathbf{a} $$: `NT(S) NT(NP) SHIFT(The) SHIFT(hungry) SHIFT(cat) REDUCE NT(VP) SHIFT(meows)
+REDUCE`.
+
+The probability of this parse tree is derived as:
+
+\\[ p(\mathbf{y} \| \mathbf{x}) = \prod_{a_t \in \mathbf{a}} p(a_t \| \mathbf{a_{<t}}) \\]
+
+With the generative model, the parser generates terminals (to an output buffer) using a GEN action, instead of
+consuming them from the buffer. If it were to generate the parse tree in the given example, the sequence of actions would
+look like: `NT(S) NT(NP) GEN(The) GEN(hungry) GEN(cat) REDUCE NT(VP) GEN(meows) REDUCE`. An important thing to be noted is
+the probability of this _generated_ parse tree, which is fundamentally different from the version with SHIFT actions.
+Here, the probability of GEN action includes the probability of taking the action itself and also the probability of
+generating that specific terminal from the vocabulary. The probability of the generated parse tree is therefore defined as:
+
+\\[ p(\mathbf{y}, \mathbf{x}) = \prod_{a_t \in \mathbf{a}} p(a_t \| \mathbf{a_{<t}}) \\]
+
+Training the discriminative parser is straight forward in the paper. It is the generative model which I felt was little
+difficult to understand. And from what I have understood (after going through some references), given the pre-trained
+discriminative parser and an input sentence $$ \mathbf{x} $$, the generative parser model is trained as follows:
+1. Use the discriminative parser to generate $$ n $$ best trees. Let us denote them as the set $$ \Upsilon'(\mathbf{x}) $$.
+This is an approximation as getting all the parse trees $$ \Upsilon(\mathbf{x}) $$ for the sentence is not tractable.
+2. Since there is one to one correspondence between the discriminative and the generative parse tree (SHIFT
+action is replaced by the GEN action), each tree in $$ \Upsilon'(\mathbf{x}) $$ can be transformed to its generative version.
+This transformation also brings in a change in the likelihood of each parse tree. Since the generative parse tree,
+on account of having GEN actions, also includes probabilities of generating tokens given the state of the parse tree and
+the vocabulary, we effectively get $$ p(\mathbf{y},\mathbf{x}) $$ for each transformed tree in $$ \Upsilon'(\mathbf{x}) $$
+as opposed to $$ p(\mathbf{y}|\mathbf{x}) $$ in their untransformed versions.
+3. The target for the generative model training is the tree in $$ \Upsilon'(\mathbf{x}) $$ that has the highest
+$$ p(\mathbf{y},\mathbf{x}) $$.

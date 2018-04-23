@@ -1,8 +1,9 @@
 ---
 layout: post
-title:  "Training RNNG's generative parser"
+title:  "Training RNNG's Generative parser"
 date:   2018-04-18 22:10:00 -0800
 background: '/images/lighthouse.jpg'
+subtitle: "Discriminative parser comes to the rescue"
 ---
 
 In the Recurrent Neural Network Grammars [paper](https://arxiv.org/abs/1602.07776), two parsers are discussed:
@@ -16,7 +17,7 @@ non-terminal on the stack.
 
 Taking the example from the paper, the parse tree: `(S (NP The hungry cat) (VP meows))`
 is equivalent to the sequence of actions $$ \mathbf{a} $$: `NT(S) NT(NP) SHIFT(The) SHIFT(hungry) SHIFT(cat) REDUCE NT(VP) SHIFT(meows)
-REDUCE`.
+REDUCE REDUCE`.
 
 The probability of this parse tree is derived as:
 
@@ -24,7 +25,7 @@ The probability of this parse tree is derived as:
 
 With the generative model, the parser generates terminals (to an output buffer) using a GEN action, instead of
 consuming them from the buffer. If it were to generate the parse tree in the given example, the sequence of actions would
-look like: `NT(S) NT(NP) GEN(The) GEN(hungry) GEN(cat) REDUCE NT(VP) GEN(meows) REDUCE`. An important thing to be noted is
+look like: `NT(S) NT(NP) GEN(The) GEN(hungry) GEN(cat) REDUCE NT(VP) GEN(meows) REDUCE REDUCE`. An important thing to be noted is
 the probability of this _generated_ parse tree, which is fundamentally different from the version with SHIFT actions.
 Here, the probability of GEN action includes the probability of taking the action itself and also the probability of
 generating that specific terminal from the vocabulary. The probability of the generated parse tree is therefore defined as:
